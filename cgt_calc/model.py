@@ -8,7 +8,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from .util import approx_equal, round_decimal
+from .util import approx_equal, is_currency, normalize_amount, round_decimal
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -154,6 +154,7 @@ class ActionType(Enum):
     STOCK_SPLIT = 15
     CASH_MERGER = 16
     EXCESS_REPORTED_INCOME = 17
+    FULL_REDEMPTION = 18
 
 
 class CalculationType(Enum):
@@ -178,6 +179,12 @@ class BrokerTransaction:
     currency: str
     broker: str
     isin: str | None = None
+
+    def __post_init__(self) -> None:
+        """Validate BrokerTransaction data."""
+        assert is_currency(self.currency), (
+            f"Invalid Currency {self.currency} for transaction {self}"
+        )
 
 
 class RuleType(Enum):
@@ -293,14 +300,14 @@ class Position:
         """Add two positions."""
         return Position(
             self.quantity + other.quantity,
-            self.amount + other.amount,
+            normalize_amount(self.amount + other.amount),
         )
 
     def __sub__(self, other: Position) -> Position:
         """Subtract two positions."""
         return Position(
             self.quantity - other.quantity,
-            self.amount - other.amount,
+            normalize_amount(self.amount - other.amount),
         )
 
     def __str__(self) -> str:
